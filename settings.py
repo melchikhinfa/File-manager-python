@@ -1,4 +1,7 @@
 import pathlib
 
-#По умолчанию корневым каталогом выбираем домашнюю директорию
-ROOT = pathlib.Path.home()
+# Рабочая директория файлового менеджера:
+PATH = pathlib.Path.home() / 'WORKING_DIRECTORY'
+WORKING_DIR = str(PATH)
+
+
