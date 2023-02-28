@@ -1,8 +1,23 @@
 import os
 import pathlib
 import shutil
-from settings import WORKING_DIR
+from settings import WORKING_DIR, PATH
 
+commands_dct = {
+            "cd": "Перемещение между папками",
+            "ls": "Вывод содержимого текущей папки на экран",
+            "mkdir": "Создание папки",
+            "rmdir": "Удаление папки",
+            "create": "Создание файла",
+            "rename": "Переименование файла/папки",
+            "read": "Чтение файла",
+            "remove": "Удаление файла",
+            "copy": "Копирование файла/папки",
+            "move": "Перемещение файла/папки",
+            "write": "Запись в файл",
+            "cwd": "Показать текущую директорию",
+            "manual": "Вывести список команд"
+        }
 
 class FileManager:
 
@@ -39,17 +54,45 @@ class FileManager:
     def pwd(self):
         print(str(pathlib.Path.cwd()))
 
-    # TODO: доделать перемещение и копирование файлов и папок
-    def mv(self):
-        pass
+    def manual(self):
+        commands_str = "\n".join(
+            [
+                f"{key} - {value}"
+                for (key, value) in commands_dct.items()
+            ]
+        )
+        print(f"Список команд:\n{commands_str}")
 
-    def cp(self, dir_name: str, path: str):
+    def mv(self, src: str, dst: str):
+        "Перемещние файла/папки из src в dst"
+        try:
+            path2src = pathlib.Path(WORKING_DIR).joinpath(src)
+            path2dst = pathlib.Path(WORKING_DIR).joinpath(dst)
+            shutil.move(path2src, path2dst)
+        except shutil.Error:
+            print(f"Не могу переместить в {dst}, т.к. он не является папкой!")
+        except FileNotFoundError:
+            print(f"Файл (директория) {src} не найдена!")
+
+    def cp(self, src: str, dst: str):
         """Копирование файлов из одной папки в другую"""
-        pass
+        path2src = pathlib.Path(WORKING_DIR).joinpath(src)
+        path2dst = pathlib.Path(WORKING_DIR).joinpath(dst)
+        for item in os.listdir(str(path2src)):
+            src_dir = path2src.joinpath(item)
+            dst_dir = path2dst.joinpath(item)
+            if src_dir.is_dir():
+                shutil.copytree(
+                    str(src_dir), str(dst_dir),
+                    symlinks=False, ignore_dangling_symlinks=True,
+                    dirs_exist_ok=True
+                )
+            else:
+                shutil.copy2(str(src_dir), dst_dir)
 
     def mkdir(self, dir_name: str):
         '''Создание директории'''
-        new_dir = pathlib.Path.joinpath(WORKING_DIR, dir_name)
+        new_dir = pathlib.Path(WORKING_DIR).joinpath(dir_name)
         try:
             new_dir.mkdir(mode=0o666, parents=True)
         except FileExistsError:
@@ -58,8 +101,8 @@ class FileManager:
     def rmdir(self, dir_name: str):
         '''Удаление папки по имени'''
         try:
-            dir2del = os.path.join(WORKING_DIR, dir_name)
-            shutil.rmtree(dir2del, ignore_errors=False, onerror=None)
+            dir2del = PATH.joinpath(dir_name)
+            shutil.rmtree(str(dir2del), ignore_errors=False, onerror=None)
         except FileNotFoundError:
             print(f"Директории {dir_name} не существует")
         except NotADirectoryError:
@@ -77,10 +120,10 @@ class FileManager:
         """Переименование файлов и папок"""
         path_old = pathlib.Path(old_name)
         path_new = pathlib.Path(new_name)
-        if path_old.exists() and not path_new.exists():   # проверяем, что новое имя не занято
+        if path_old.exists() and not path_new.exists():  # проверяем, что новое имя не занято
             path_old.rename(str(path_new))
         else:
-            print("Что-то пошло не так. Не могу переименовать {old_name} в {new_name}")
+            print(f"Что-то пошло не так. Не могу переименовать {old_name} в {new_name}")
 
     def rm(self, file_name: str):
         """Удаление файлов по имени"""
@@ -93,14 +136,14 @@ class FileManager:
     def write(self, file_name: str, *data: str):
         """Запись текста в файл"""
         data2write = " ".join(data)
-        path2file = pathlib.Path(file_name)
+        path2file = pathlib.Path(WORKING_DIR).joinpath(file_name)
         if path2file.is_file():
             path2file.write_text(data2write)
         else:
             print(f"Файла {file_name} не существует или является директорией")
 
     def cat(self, file_name: str):
-        path2file = pathlib.Path(file_name)
+        path2file = pathlib.Path(WORKING_DIR).joinpath(file_name)
         if path2file.is_file():
             print(path2file.read_text())
         else:
@@ -108,22 +151,6 @@ class FileManager:
 
     def router(self, command: str):
         """Ассоциация между командами и методами FileManager"""
-
-        commands_dict = {
-            "cd": "Перемещение между папками",
-            "ls": "Вывод содержимого текущей папки на экран",
-            "mkdir": "Создание папки",
-            "rmdir": "Удаление папки",
-            "create": "Создание файла",
-            "rename": "Переименование файла/папки",
-            "read": "Чтение файла",
-            "remove": "Удаление файла",
-            "copy": "Копирование файла/папки",
-            "move": "Перемещение файла/папки",
-            "write": "Запись в файл",
-            "cwd": "Показать текущую директорию"
-        }
-
         commands = [
             self.cd,
             self.ls,
@@ -136,11 +163,13 @@ class FileManager:
             self.cp,
             self.mv,
             self.write,
-            self.pwd
+            self.pwd,
+            self.manual
         ]
-        item_dict = dict(zip(commands_dict.keys(), commands))
+        item_dict = dict(zip(commands_dct.keys(), commands))
         return item_dict.get(command, None)
 
 
-
-
+f = FileManager()
+os.chdir('/home/andreymelchikhin/WORKING_DIRECTORY')
+f.pwd()
